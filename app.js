@@ -31,7 +31,6 @@ app.post("/signup", (req, res) => {
       user_id: user_id,
       password: password,
       nickname: user_id,
-      comment: "",
     });
 
     return res.status(200).send({
