@@ -49,24 +49,30 @@ app.post("/signup", (req, res) => {
   }
 });
 
+const searchAccount = (param_user_id, user_id, password) => {
+  // base64でエンコードされた文字列をデコード
+  // base64をデコードするatob()を使っていた(node.jsでは動かない)ため、デプロイ先で動かない？ 参考：https://moewe-net.com/nodejs/buffer-from
+  const decoded_user_id = Buffer.from(user_id, "base64").toString();
+  const decoded_password = Buffer.from(password, "base64").toString();
+
+  if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
+    throw new Error("Authentication failed");
+
+  const foundAccount = accounts.find(
+    (account) => account.user_id === decoded_user_id && account.password === decoded_password
+  );
+
+  if (!foundAccount) throw new Error("No user found");
+
+  return foundAccount;
+};
+
 app.get("/users/:user_id", (req, res) => {
   try {
     const { param_user_id } = req.params;
     const [user_id, password] = req.headers.authorization.split(":");
 
-    // base64でエンコードされた文字列をデコード
-    // caution: base64をデコードするatob()はnode.jsでは使えない。デプロイした時に動かなかった。 参考：https://moewe-net.com/nodejs/buffer-from
-    const decoded_user_id = Buffer.from(user_id, "base64").toString();
-    const decoded_password = Buffer.from(password, "base64").toString();
-
-    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
-      throw new Error("Authentication failed");
-
-    const foundAccount = accounts.find(
-      (account) => account.user_id === decoded_user_id && account.password === decoded_password
-    );
-
-    if (!foundAccount) throw new Error("No user found");
+    foundAccount = searchAccount(param_user_id, user_id, password);
 
     // セキュリティのためパスワードは返さない
     const { password: _, ...filteredAccount } = foundAccount;
@@ -97,21 +103,17 @@ app.patch("/users/:user_id", (req, res) => {
     const [user_id, password] = req.headers.authorization.split(":");
     const { nickname, comment } = req.body;
 
-    // base64でエンコードされた文字列をデコード
-    const decoded_user_id = Buffer.from(user_id, "base64").toString();
-    const decoded_password = Buffer.from(password, "base64").toString();
+    foundAccount = searchAccount(param_user_id, user_id, password);
 
-    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+    // accountsにfoundAccountを上書き
+    accounts[accounts.indexOf(foundAccount)] = {
+      user_id: foundAccount.user_id,
+      password: foundAccount.password,
+      nickname: nickname,
+      comment: comment,
+    };
 
-    const foundAccount = accounts.find(
-      (account) => account.user_id === decoded_user_id && account.password === decoded_password
-    );
-
-    if (!foundAccount) throw new Error("No user found");
-
-    // Accountの情報を更新
-    if (nickname) foundAccount.nickname = nickname;
-    if (comment) foundAccount.comment = comment;
+    console.log(accounts);
 
     return res.status(200).send({
       message: "User successfully updated",
@@ -141,17 +143,7 @@ app.post("/close", (req, res) => {
   try {
     const [user_id, password] = req.headers.authorization.split(":");
 
-    // base64でエンコードされた文字列をデコード
-    const decoded_user_id = Buffer.from(user_id, "base64").toString();
-    const decoded_password = Buffer.from(password, "base64").toString();
-
-    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
-
-    const foundAccount = accounts.find(
-      (account) => account.user_id === decoded_user_id && account.password === decoded_password
-    );
-
-    if (!foundAccount) throw new Error("No user found");
+    foundAccount = searchAccount(param_user_id, user_id, password);
 
     // Accountを削除
     accounts.splice(accounts.indexOf(foundAccount), 1);
