@@ -51,13 +51,15 @@ app.post("/signup", (req, res) => {
 
 app.get("/users/:user_id", (req, res) => {
   try {
+    const { param_user_id } = req.params;
     const [user_id, password] = req.headers.authorization.split(":");
 
     // base64でエンコードされた文字列をデコード
     const decoded_user_id = atob(user_id);
     const decoded_password = atob(password);
 
-    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
+      throw new Error("Authentication failed");
 
     const foundAccount = accounts.find(
       (account) => account.user_id === decoded_user_id && account.password === decoded_password
@@ -89,6 +91,8 @@ app.get("/users/:user_id", (req, res) => {
 
 app.patch("/users/:user_id", (req, res) => {
   try {
+    const { param_user_id } = req.params;
+
     const [user_id, password] = req.headers.authorization.split(":");
     const { nickname, comment } = req.body;
 
@@ -96,7 +100,8 @@ app.patch("/users/:user_id", (req, res) => {
     const decoded_user_id = atob(user_id);
     const decoded_password = atob(password);
 
-    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
+      throw new Error("Authentication failed");
 
     const foundAccount = accounts.find(
       (account) => account.user_id === decoded_user_id && account.password === decoded_password
@@ -134,13 +139,15 @@ app.patch("/users/:user_id", (req, res) => {
 
 app.post("/close", (req, res) => {
   try {
+    const { param_user_id } = req.params;
     const [user_id, password] = req.headers.authorization.split(":");
 
     // base64でエンコードされた文字列をデコード
     const decoded_user_id = atob(user_id);
     const decoded_password = atob(password);
 
-    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
+      throw new Error("Authentication failed");
 
     const foundAccount = accounts.find(
       (account) => account.user_id === decoded_user_id && account.password === decoded_password
