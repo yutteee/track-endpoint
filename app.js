@@ -3,7 +3,7 @@ const app = express();
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.status(404).send({ message: "Not Found" });
 });
 
 const testAccount = {
@@ -71,6 +71,88 @@ app.get("/users/:user_id", (req, res) => {
     return res.status(200).send({
       message: "User details by user_id",
       user: filteredAccount,
+    });
+  } catch (error) {
+    if (error.message === "No user found") {
+      return res.status(404).send({
+        message: "No user found",
+      });
+    }
+
+    if (error.message === "Authentication failed") {
+      return res.status(401).send({
+        message: "Authentication failed",
+      });
+    }
+  }
+});
+
+app.patch("/users/:user_id", (req, res) => {
+  try {
+    const [user_id, password] = req.headers.authorization.split(":");
+    const { nickname, comment } = req.body;
+
+    // base64でエンコードされた文字列をデコード
+    const decoded_user_id = atob(user_id);
+    const decoded_password = atob(password);
+
+    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+
+    const foundAccount = accounts.find(
+      (account) => account.user_id === decoded_user_id && account.password === decoded_password
+    );
+
+    if (!foundAccount) throw new Error("No user found");
+
+    // Accountの情報を更新
+    if (nickname) foundAccount.nickname = nickname;
+    if (comment) foundAccount.comment = comment;
+
+    return res.status(200).send({
+      message: "User successfully updated",
+      recipe: [
+        {
+          nickname: foundAccount.nickname,
+          comment: foundAccount.comment,
+        },
+      ],
+    });
+  } catch (error) {
+    if (error.message === "No user found") {
+      return res.status(404).send({
+        message: "No user found",
+      });
+    }
+
+    if (error.message === "Authentication failed") {
+      return res.status(401).send({
+        message: "Authentication failed",
+      });
+    }
+  }
+});
+
+app.post("/close", (req, res) => {
+  try {
+    const [user_id, password] = req.headers.authorization.split(":");
+
+    // base64でエンコードされた文字列をデコード
+    const decoded_user_id = atob(user_id);
+    const decoded_password = atob(password);
+
+    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
+
+    const foundAccount = accounts.find(
+      (account) => account.user_id === decoded_user_id && account.password === decoded_password
+    );
+
+    if (!foundAccount) throw new Error("No user found");
+
+    // Accountを削除
+    accounts.splice(accounts.indexOf(foundAccount), 1);
+
+    return res.status(200).send({
+      message: "Account and user successfully removed",
     });
   } catch (error) {
     if (error.message === "No user found") {
