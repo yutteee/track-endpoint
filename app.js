@@ -31,6 +31,7 @@ app.post("/signup", (req, res) => {
       user_id: user_id,
       password: password,
       nickname: user_id,
+      comment: "",
     });
 
     return res.status(200).send({
@@ -54,8 +55,9 @@ app.get("/users/:user_id", (req, res) => {
     const [user_id, password] = req.headers.authorization.split(":");
 
     // base64でエンコードされた文字列をデコード
-    const decoded_user_id = atob(user_id);
-    const decoded_password = atob(password);
+    // caution: base64をデコードするatob()はnode.jsでは使えない。デプロイした時に動かなかった。 参考：https://moewe-net.com/nodejs/buffer-from
+    const decoded_user_id = Buffer.from(user_id, "base64").toString();
+    const decoded_password = Buffer.from(password, "base64").toString();
 
     if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
       throw new Error("Authentication failed");
@@ -96,11 +98,10 @@ app.patch("/users/:user_id", (req, res) => {
     const { nickname, comment } = req.body;
 
     // base64でエンコードされた文字列をデコード
-    const decoded_user_id = atob(user_id);
-    const decoded_password = atob(password);
+    const decoded_user_id = Buffer.from(user_id, "base64").toString();
+    const decoded_password = Buffer.from(password, "base64").toString();
 
-    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
-      throw new Error("Authentication failed");
+    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
 
     const foundAccount = accounts.find(
       (account) => account.user_id === decoded_user_id && account.password === decoded_password
@@ -138,15 +139,13 @@ app.patch("/users/:user_id", (req, res) => {
 
 app.post("/close", (req, res) => {
   try {
-    const { param_user_id } = req.params;
     const [user_id, password] = req.headers.authorization.split(":");
 
     // base64でエンコードされた文字列をデコード
-    const decoded_user_id = atob(user_id);
-    const decoded_password = atob(password);
+    const decoded_user_id = Buffer.from(user_id, "base64").toString();
+    const decoded_password = Buffer.from(password, "base64").toString();
 
-    if (!decoded_user_id || !decoded_password || decoded_user_id === param_user_id)
-      throw new Error("Authentication failed");
+    if (!decoded_user_id || !decoded_password) throw new Error("Authentication failed");
 
     const foundAccount = accounts.find(
       (account) => account.user_id === decoded_user_id && account.password === decoded_password
